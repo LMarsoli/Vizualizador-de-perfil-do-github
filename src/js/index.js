@@ -1,26 +1,33 @@
-import { fetchGitHubUser } from './api.js';
-import { getElements, renderLoading, renderProfile, renderError, setButtonState } from './ui.js';
+import { fetchGithubUser, fetchGithubUserRepos } from './githubApi.js';
+import { renderProfile } from './profileView.js';
 
-const { inputSearch, btnSearch, profileResults } = getElements();
+const inputSearch = document.getElementById('input-search');
+const btnSearch = document.getElementById('btn-search');
+const profileResults = document.querySelector('.profile-results');
 
-btnSearch.addEventListener('click', async () => {
-    const userName = inputSearch.value.trim();
-
+async function getUserProfile() {
+    const userName = inputSearch.value;
     if (!userName) {
-        renderError(profileResults, 'Por favor, digite um nome de usuário do GitHub.');
+        alert('Por favor, digite um nome de usuário do GitHub.');
+        profileResults.innerHTML = "";
         return;
     }
-
-    renderLoading(profileResults);
-    setButtonState(btnSearch, true);
-
+    profileResults.innerHTML = `<p class="loading">Carregando...</p>`;
     try {
-        const userData = await fetchGitHubUser(userName);
-        renderProfile(profileResults, userData);
+        const userData = await fetchGithubUser(userName);
+        const userRepos = await fetchGithubUserRepos(userName);
+        renderProfile(userData, userRepos, profileResults);
     } catch (error) {
-        console.error('Erro ao buscar o perfil do GitHub:', error);
-        renderError(profileResults, error.message || 'Ocorreu um erro ao buscar o perfil do GitHub. Por favor, tente novamente mais tarde.');
-    } finally {
-        setButtonState(btnSearch, false);
+        console.error('Erro ao buscar o perfil do usuário:', error);
+        alert('Usuário não encontrado. Por favor, verifique o nome de usuário e tente novamente.');
+        profileResults.innerHTML = "";
     }
-}); 
+}
+
+btnSearch.addEventListener('click', getUserProfile);
+
+inputSearch.addEventListener('keyup', (event) => {
+    if (event.key === 'Enter') {
+        getUserProfile();
+    }
+});
